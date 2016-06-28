@@ -39,7 +39,7 @@ public class HelloWorld extends Thread {
   }
   
   public void run() {
-	  SysLib.cout( "Hello, world\n" );  // using SysLib vs System.out
+	  SysLib.cout( "Hello," + " WOrlDD\n" );  // using SysLib vs System.out
 	  SysLib.exit();                    // (see SysLib.java)
 	  return;
   }
