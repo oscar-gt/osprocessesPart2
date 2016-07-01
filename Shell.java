@@ -8,7 +8,10 @@
 public class Shell extends Thread 
 {
 	// Private fields
-	int promptNumber;		// When promting Shell[n]%
+	private int promptNumber;			// When promting Shell[n]%
+	private StringBuffer lineOfInput;	// Entire line of input
+	private int activeThreads;
+	private int greatestThread;
 	
 
 	// Default constructor
@@ -16,6 +19,9 @@ public class Shell extends Thread
     {
     	// Initialize fields
     	promptNumber = 0;
+    	lineOfInput = new StringBuffer();
+    	activeThreads = 0;
+    	greatestThread = 0;
     	
     	
     }
@@ -39,15 +45,17 @@ public class Shell extends Thread
     	while(true)
     	{
     		// Receiving an entire line of input
-    		SysLib.cin(strBuff);
-    		buffLength = strBuff.length();
+    		//SysLib.cin(lineOfInput);
+    		getLineToProcess();
+    		buffLength = getInputLength();
     		
     		// Storing string buffer as a string
     		// to break up into commands and arguments.
     		lineToProcess = strBuff.toString();
     		
     		// Process string and execute commands
-    		processLineOfInput(strBuff);
+    		//processLineOfInput(strBuff);
+    		processLineOfInput();
     		
     		if(verbose)
     		{
@@ -55,7 +63,9 @@ public class Shell extends Thread
     		}
     		
     		// Emptying buffer for next line of input
-    		strBuff.delete(0, buffLength);
+    		clearInput();
+    		SysLib.cout("BEFORE new shell prompt, greatest thread:  ");
+    		SysLib.cout(getGreatestThread() + "\n");
     		shellPrompt();
     		
     		
@@ -68,18 +78,20 @@ public class Shell extends Thread
     // Processes entire line of input. Line of input 
     // can have numerous commands/args separated by 
     // & (run concurrently) or ; (run sequentially)
-    public void processLineOfInput(StringBuffer input)
+    public void processLineOfInput()
     {
+    	boolean verbose = false;
+    	int currTid = 0;
     	// Used to see if next command will be run sequentially
     	boolean runSequential = false;
     	
     	// String that stores data for one command
     	// and its arguments
     	String currentCommand = "";
-    	int inputLength = input.length();
+    	int inputLength = getInputLength();
     	
     	// Current and child thread id number
-    	int threadID = 0;
+    	int threadID = 1;
     	int childThread = 0;
     	
     	// Index of first, last char in current command
@@ -94,7 +106,7 @@ public class Shell extends Thread
     	// Done when all chars have been looked at.
     	for(int i = 0; i < inputLength; i++)
     	{
-    		currentChar = input.charAt(i);
+    		currentChar = lineOfInput.charAt(i);
     		
     		// Checking for delimeters "&", ";"
    
@@ -104,7 +116,7 @@ public class Shell extends Thread
     		{
     			// First checking if we're at the end of the 
     			// input string buffer
-    			if(currentChar == ';' || currChar == '&')
+    			if(currentChar == ';' || currentChar == '&')
     			{
     				endOfCmd = i - 1;
     			}
@@ -122,7 +134,7 @@ public class Shell extends Thread
     			}
     			
     			// Store string command up to current index
-    			currentCommand = input.substring(startOfCmd, endOfCmd);
+    			currentCommand = lineOfInput.substring(startOfCmd, endOfCmd);
     			// Updating start of next command, should be next index
     			startOfCmd = i + 1;
     			
@@ -142,11 +154,20 @@ public class Shell extends Thread
     				// At this point, previous child process
     				// has terminated. Can execute next command
     				threadID = SysLib.exec(cmdArgs);
+    				incrThreadNum();
+    				SysLib.cout("*** Seq exec() call. Id/command: " + threadID + "/" + currentCommand + "\n");
+    				activeThreads = activeThreads + 1;
+    				
+    				
     			}
     			// Else not running sequentially.
     			else
     			{
     				threadID = SysLib.exec(cmdArgs);
+    				incrThreadNum();
+    				SysLib.cout("*** Concurrent exec() call. Id/command: " + threadID + "/" + currentCommand + "\n");
+    				activeThreads = activeThreads + 1;
+    				
     			}
     			
     			// Checking if next call will be
@@ -163,10 +184,53 @@ public class Shell extends Thread
     			
     		} // End of if( "&" || ";" || endOfBuffer)
     		
+    		if(verbose == true)
+    		{
+    			SysLib.cout("Current threadID:  " + threadID 
+    					+ ", for command:  " + currentCommand
+    					+ ", with childID:  " + childThread);
+    			SysLib.cout("\n");
+    		}
+    		
+    
     	}// End of for loop
+
+
+    	int currThread = SysLib.join();
+    	SysLib.cout("join() == " + currThread + ", threadID == " + threadID + "\n");
+    	//while(currThread != getGreatestThread())
+    	while(currThread != threadID)
+    	{
+    		currThread = SysLib.join();
+    		
+    		SysLib.cout("waiting for termination, join() == " + currThread 
+    					+ ", threadID == " + threadID + "\n");
+    	}
     	
     	
     	
+    }
+    
+    // Gets entire line of input from command line
+    private void getLineToProcess()
+    {
+    	// Receiving an entire line of input
+		SysLib.cin(lineOfInput);
+		
+    }
+    
+    // Returns the length of input
+    private int getInputLength()
+    {
+    	return lineOfInput.length();
+    }
+    
+    // Clears contents of buffer to process
+    // next line of input
+    private void clearInput()
+    {
+    	int len = getInputLength();
+    	lineOfInput.delete(0, len);
     }
     
     // Displays shell prompt: Shell[n]%, where n is the 
@@ -185,6 +249,16 @@ public class Shell extends Thread
     private void incrPromptNumber()
     {
     	promptNumber = promptNumber + 1;
+    }
+    
+    private void incrThreadNum()
+    {
+    	greatestThread = greatestThread + 1;
+    }
+    
+    private int getGreatestThread()
+    {
+    	return greatestThread;
     }
     
     public void displayStrArr(String[] input)
