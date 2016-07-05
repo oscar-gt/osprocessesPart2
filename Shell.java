@@ -10,20 +10,13 @@ public class Shell extends Thread
 	// Private fields
 	private int promptNumber;			// When promting Shell[n]%
 	private StringBuffer lineOfInput;	// Entire line of input
-	private int activeThreads;
-	private int greatestThread;
 	
-
 	// Default constructor
     public Shell()  
     {
     	// Initialize fields
     	promptNumber = 0;
-    	lineOfInput = new StringBuffer();
-    	activeThreads = 0;
-    	greatestThread = 0;
-    	
-    	
+    	lineOfInput = new StringBuffer();  	  	
     }
     
     // Run method 
@@ -64,8 +57,6 @@ public class Shell extends Thread
     		
     		// Emptying buffer for next line of input
     		clearInput();
-    		SysLib.cout("BEFORE new shell prompt, greatest thread:  ");
-    		SysLib.cout(getGreatestThread() + "\n");
     		shellPrompt();
     		
     		
@@ -154,20 +145,13 @@ public class Shell extends Thread
     				// At this point, previous child process
     				// has terminated. Can execute next command
     				threadID = SysLib.exec(cmdArgs);
-    				incrThreadNum();
-    				SysLib.cout("*** Seq exec() call. Id/command: " + threadID + "/" + currentCommand + "\n");
-    				activeThreads = activeThreads + 1;
-    				
-    				
+    				//SysLib.cout("*** Seq exec() call. Id/command: " + threadID + "/" + currentCommand + "\n");   					
     			}
     			// Else not running sequentially.
     			else
     			{
     				threadID = SysLib.exec(cmdArgs);
-    				incrThreadNum();
-    				SysLib.cout("*** Concurrent exec() call. Id/command: " + threadID + "/" + currentCommand + "\n");
-    				activeThreads = activeThreads + 1;
-    				
+    				//SysLib.cout("*** Concurrent exec() call. Id/command: " + threadID + "/" + currentCommand + "\n");	
     			}
     			
     			// Checking if next call will be
@@ -197,18 +181,22 @@ public class Shell extends Thread
 
 
     	int currThread = SysLib.join();
-    	SysLib.cout("join() == " + currThread + ", threadID == " + threadID + "\n");
+    	if(verbose)
+    	{
+    		SysLib.cout("join() == " + currThread + ", threadID == " + threadID + "\n");
+    	}
+    	
     	//while(currThread != getGreatestThread())
     	while(currThread != threadID)
     	{
     		currThread = SysLib.join();
-    		
-    		SysLib.cout("waiting for termination, join() == " + currThread 
+    		if(verbose)
+    		{
+    			SysLib.cout("waiting for termination, join() == " + currThread 
     					+ ", threadID == " + threadID + "\n");
-    	}
-    	
-    	
-    	
+    		}
+    		
+    	} 	
     }
     
     // Gets entire line of input from command line
@@ -251,15 +239,6 @@ public class Shell extends Thread
     	promptNumber = promptNumber + 1;
     }
     
-    private void incrThreadNum()
-    {
-    	greatestThread = greatestThread + 1;
-    }
-    
-    private int getGreatestThread()
-    {
-    	return greatestThread;
-    }
     
     public void displayStrArr(String[] input)
     {
