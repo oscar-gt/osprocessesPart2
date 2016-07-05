@@ -10,13 +10,15 @@ public class Shell extends Thread
 	// Private fields
 	private int promptNumber;			// When promting Shell[n]%
 	private StringBuffer lineOfInput;	// Entire line of input
+	private boolean running;
 	
 	// Default constructor
     public Shell()  
     {
     	// Initialize fields
     	promptNumber = 0;
-    	lineOfInput = new StringBuffer();  	  	
+    	lineOfInput = new StringBuffer();  	
+    	running = true;
     }
     
     // Run method 
@@ -49,6 +51,11 @@ public class Shell extends Thread
     		// Process string and execute commands
     		//processLineOfInput(strBuff);
     		processLineOfInput();
+    		if(!running)
+    		{
+    			SysLib.exit();
+    			break;
+    		}
     		
     		if(verbose)
     		{
@@ -57,13 +64,8 @@ public class Shell extends Thread
     		
     		// Emptying buffer for next line of input
     		clearInput();
-    		shellPrompt();
-    		
-    		
+    		shellPrompt();    		    		
     	}
-    	
-    	
-
     }
     
     // Processes entire line of input. Line of input 
@@ -125,13 +127,19 @@ public class Shell extends Thread
     			}
     			
     			// Store string command up to current index
-    			currentCommand = lineOfInput.substring(startOfCmd, endOfCmd);
+    			currentCommand = lineOfInput.substring(startOfCmd, endOfCmd+1);
     			// Updating start of next command, should be next index
     			startOfCmd = i + 1;
     			
     			// Creating argument array and executing
     			String[] cmdArgs = SysLib.stringToArgs(currentCommand);
     			
+    			// Checking for exit input
+    			if(cmdArgs[0].equalsIgnoreCase("exit"))
+    			{
+    				running = false;
+    				break;
+    			}
     			// First need to check if we need 
     			// to wait for the previous execution to terminate
     			if(runSequential)
@@ -145,13 +153,13 @@ public class Shell extends Thread
     				// At this point, previous child process
     				// has terminated. Can execute next command
     				threadID = SysLib.exec(cmdArgs);
-    				//SysLib.cout("*** Seq exec() call. Id/command: " + threadID + "/" + currentCommand + "\n");   					
+    				
     			}
     			// Else not running sequentially.
     			else
     			{
     				threadID = SysLib.exec(cmdArgs);
-    				//SysLib.cout("*** Concurrent exec() call. Id/command: " + threadID + "/" + currentCommand + "\n");	
+    				
     			}
     			
     			// Checking if next call will be
@@ -179,24 +187,33 @@ public class Shell extends Thread
     
     	}// End of for loop
 
-
-    	int currThread = SysLib.join();
-    	if(verbose)
+    	if(running)
     	{
-    		SysLib.cout("join() == " + currThread + ", threadID == " + threadID + "\n");
-    	}
-    	
-    	//while(currThread != getGreatestThread())
-    	while(currThread != threadID)
-    	{
-    		currThread = SysLib.join();
+    		int currThread = SysLib.join();
     		if(verbose)
     		{
-    			SysLib.cout("waiting for termination, join() == " + currThread 
-    					+ ", threadID == " + threadID + "\n");
+    			SysLib.cout("join() == " + currThread + ", threadID == " + threadID + "\n");
     		}
-    		
-    	} 	
+    		while(currThread != threadID)
+    		{
+    			currThread = SysLib.join();
+    			if(verbose)
+    			{
+    				SysLib.cout("waiting for termination, join() == " + currThread 
+    						+ ", threadID == " + threadID + "\n");
+    			}
+
+    		} 	
+    	}
+    	else
+    	{
+    		return;
+    	}
+
+    	
+    	
+
+    	
     }
     
     // Gets entire line of input from command line
@@ -230,16 +247,15 @@ public class Shell extends Thread
     	incrPromptNumber();
     	int pnum = getPromptNumber();
     	SysLib.cout( "Shell[" + pnum + "]% ");  // using SysLib vs System.out
-//    	SysLib.exit();                    // (see SysLib.java)
-//    	return;
     }
     
+    // Increases the prompt number
     private void incrPromptNumber()
     {
     	promptNumber = promptNumber + 1;
     }
     
-    
+    // Displays the contents of a string array
     public void displayStrArr(String[] input)
     {
     	int len = input.length;
@@ -250,7 +266,7 @@ public class Shell extends Thread
     	SysLib.cout("\n");
     }
     
-    
+    // Returns the current prompt number
     public int getPromptNumber()
     {
     	return promptNumber;
